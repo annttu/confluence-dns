@@ -1,0 +1,5 @@
+base_url = 'https://wiki.example.com'
+username = 'nocbot'
+password = 'RedaCtedPassw0rd'
+page_id = '3276966' # Id in url, use history button if not visible on base url
+verify_ssl = False
