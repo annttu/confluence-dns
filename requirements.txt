@@ -2,3 +2,4 @@ IPy
 beautifulsoup4
 lxml
 requests
+prettytable

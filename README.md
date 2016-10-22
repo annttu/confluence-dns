@@ -22,9 +22,10 @@ And following table containing addresses.
 <table>
   <tr>
     <td>Name</td>
-    <td>v4</td>
-    <td>v6</td>
+    <td>A</td>
+    <td>AAAA</td>
     <td>CNAME</td>
+    <td>SRV</td>
     <td>Description</td>
 
   </tr>
@@ -36,6 +37,7 @@ And following table containing addresses.
     <td>10.0.0.5</td>
     <td></td>
     <td>foo.example.com</td>
+    <td></td>
     <td>Example row</td>
   </tr>
 </table>
@@ -52,11 +54,6 @@ Also setup a virtualenv and install required packages
     virtualenv env --python=python3
     . env/bin/activate
     pip install -r requirements.txt
-
-Also setup a directory for zonefiles
-
-    mkdir zones
-
 
 
 Usage
