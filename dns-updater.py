@@ -54,20 +54,22 @@ class DNSUpdaterNG(object):
 
     def _update_all_zones(self, zone_updates):
         commands = []
-        commands.append('server 127.1')
         for zonename in zone_updates.keys():
+            commands.append('server 127.1')
             commands.append('zone %s' % (zonename))
             updates = zone_updates[zonename]
             for update in updates:
                 commands.append('update delete %s' % (update[0]))
                 commands.append('update add %s' % (update[1]))
             commands.append('send')
-        cmd_out = '\n'.join(commands).encode('ascii', errors='ignore')
-        p = Popen(['nsupdate'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate(input=cmd_out)[0:2]
-        ser = stderr.decode('ascii', errors='ignore')
-        if ser.strip() != '':
-            print(ser)
+            cmd_out = '\n'.join(commands).encode('ascii', errors='ignore')
+            logger.debug(cmd_out.decode("ascii"))
+            p = Popen(['nsupdate'], stdout=PIPE, stdin=PIPE, stderr=PIPE)
+            stdout, stderr = p.communicate(input=cmd_out)[0:2]
+            ser = stderr.decode('ascii', errors='ignore')
+            if ser.strip() != '':
+                logger.error("%s: %s" % (zonename, ser.strip()))
+            commands = []
 
     def _build_batch_update(self, addrtable_data):
         zone_updates = {}
@@ -88,10 +90,14 @@ class DNSUpdaterNG(object):
                         "%s.%s. 60 A %s" % (item['Name'], zi['dns_suffix'], item['A'])
                     ])
                 if zi['dns_reverse4'] != '-':
-                    zone_updates[zi['dns_reverse4']].append([
-                        "%s PTR" % (IPy.IP(item['A']).reverseNames()[0]),
-                        "%s 60 PTR %s.%s." % (IPy.IP(item['A']).reverseNames()[0], item['Name'], zi['dns_suffix'])
-                    ])
+                    this_reverse = IPy.IP(item['A']).reverseNames()[0]
+                    if this_reverse.endswith(zi['dns_reverse4']):
+                        zone_updates[zi['dns_reverse4']].append([
+                            "%s PTR" % (IPy.IP(item['A']).reverseNames()[0]),
+                            "%s 60 PTR %s.%s." % (IPy.IP(item['A']).reverseNames()[0], item['Name'], zi['dns_suffix'])
+                        ])
+                    else:
+                        logger.error("IP address %s don't match reverse %s" % (item['A'], zi['dns_reverse4']))
             if item['AAAA'] != '':
                 ipv6 = item['AAAA']
                 if '/' in ipv6:
@@ -102,10 +108,14 @@ class DNSUpdaterNG(object):
                         "%s.%s. 60 AAAA %s" % (item['Name'], zi['dns_suffix'], ipv6)
                     ])
                 if zi['dns_reverse6'] != '-':
-                    zone_updates[zi['dns_reverse6']].append([
-                        "%s PTR" % (IPy.IP(ipv6).reverseNames()[0]),
-                        "%s 60 PTR %s.%s." % (IPy.IP(ipv6).reverseNames()[0], item['Name'], zi['dns_suffix'])
-                    ])
+                    this_reverse = IPy.IP(ipv6).reverseNames()[0]
+                    if this_reverse.endswith(zi['dns_reverse6']):
+                        zone_updates[zi['dns_reverse6']].append([
+                            "%s PTR" % (IPy.IP(ipv6).reverseNames()[0]),
+                            "%s 60 PTR %s.%s." % (IPy.IP(ipv6).reverseNames()[0], item['Name'], zi['dns_suffix'])
+                        ])
+                    else:
+                        logger.error("IPv6 address %s don't match reverse %s" % (ipv6, zi['dns_reverse6']))
             for cname in item['CNAME']:
                 zone_updates[zi['dns_zone']].append([
                     "%s 60 CNAME" % (cname),
@@ -122,7 +132,7 @@ class DNSUpdaterNG(object):
                 ])
         for zone, data in zone_updates.items():
             for item in data:
-                print("%s" % (item,))
+                logger.debug("%s" % (item,))
         return zone_updates
 
     def _parse_addrtable(self, addrtable):
